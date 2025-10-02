@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogoIcon, DashboardIcon, CampaignsIcon, NumbersIcon, ReportsIcon, SettingsIcon } from './icons/NavIcons';
+import { LogoIcon, DashboardIcon, CampaignsIcon, NumbersIcon, ReportsIcon, SettingsIcon, TargetIcon } from './icons/NavIcons';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -39,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
         <NavItem icon={<DashboardIcon />} label="Dashboard" active={activePage === 'Dashboard'} isCollapsed={isCollapsed} onClick={() => onNavigate('Dashboard')} />
         <NavItem icon={<CampaignsIcon />} label="Campaigns" active={activePage === 'Campaigns'} isCollapsed={isCollapsed} onClick={() => onNavigate('Campaigns')} />
         <NavItem icon={<NumbersIcon />} label="Numbers" active={activePage === 'Numbers'} isCollapsed={isCollapsed} onClick={() => onNavigate('Numbers')} />
+        <NavItem icon={<TargetIcon />} label="Targets" active={activePage === 'Targets'} isCollapsed={isCollapsed} onClick={() => onNavigate('Targets')} />
         <NavItem icon={<ReportsIcon />} label="Reports" active={activePage === 'Reports'} isCollapsed={isCollapsed} onClick={() => onNavigate('Reports')} />
       </nav>
 

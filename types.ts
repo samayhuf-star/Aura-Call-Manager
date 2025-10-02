@@ -5,15 +5,26 @@ export enum CallStatus {
   Failed = 'Failed',
 }
 
+export interface Target {
+  id: string;
+  name: string;
+  buyer: string;
+  destination: string;
+  status: 'Active' | 'Inactive';
+}
+
 export interface Call {
   id: string;
   callerId: string;
-  source: string;
   duration: number; // in seconds
   status: CallStatus;
   cost: number;
   revenue: number;
   timestamp: string;
+  recordingUrl?: string | null;
+  notes?: string;
+  campaignId: string;
+  targetId: string;
 }
 
 export interface CallVolumeData {
@@ -21,8 +32,8 @@ export interface CallVolumeData {
   calls: number;
 }
 
-export interface CallsBySourceData {
-  source: string;
+export interface CallsByCampaignData {
+  campaign: string;
   calls: number;
 }
 
@@ -43,9 +54,7 @@ export interface Campaign {
   id: string;
   name: string;
   status: CampaignStatus;
-  numbers: number;
-  calls: number;
-  cpa: number; // Cost Per Acquisition
+  targetIds: string[];
 }
 
 export enum NumberStatus {
@@ -56,9 +65,8 @@ export enum NumberStatus {
 export interface TrackedNumber {
     id: string;
     phoneNumber: string;
-    source: string | null;
+    campaignId: string | null;
     status: NumberStatus;
-    forwardTo: string;
 }
 
 

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { StatCard } from './StatCard';
 import { CallVolumeChart } from './CallVolumeChart';
-import { CallsBySourceChart } from './CallsBySourceChart';
+import { CallsByCampaignChart } from './CallsBySourceChart';
 import { RecentCallsTable } from './RecentCallsTable';
 import { CallStatusPieChart } from './CallStatusPieChart';
 import { PhoneIcon, CurrencyDollarIcon, ClockIcon, ChartBarIcon, SparklesIcon } from './icons/UIIcons';
@@ -85,7 +85,7 @@ const Dashboard: React.FC = () => {
                     <RecentCallsTable />
                  </div>
                  <div className="lg:col-span-2">
-                    <CallsBySourceChart />
+                    <CallsByCampaignChart />
                  </div>
             </div>
         </div>

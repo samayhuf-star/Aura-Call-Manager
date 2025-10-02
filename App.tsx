@@ -5,6 +5,7 @@ import Campaigns from './components/Campaigns';
 import Numbers from './components/Numbers';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
+import Targets from './components/Targets';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('Dashboard');
@@ -17,6 +18,8 @@ const App: React.FC = () => {
         return <Campaigns />;
       case 'Numbers':
         return <Numbers />;
+      case 'Targets':
+        return <Targets />;
       case 'Reports':
         return <Reports />;
       case 'Settings':

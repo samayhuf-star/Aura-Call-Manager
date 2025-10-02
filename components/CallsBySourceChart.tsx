@@ -1,16 +1,16 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { mockCallsBySource } from '../data/mockData';
+import { mockCallsByCampaign } from '../data/mockData';
 
-export const CallsBySourceChart: React.FC = () => {
+export const CallsByCampaignChart: React.FC = () => {
   return (
     <div className="bg-background-card p-6 rounded-xl shadow-lg h-96">
-      <h3 className="text-lg font-semibold text-text-primary mb-4">Top Call Sources</h3>
+      <h3 className="text-lg font-semibold text-text-primary mb-4">Top Campaigns by Calls</h3>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={mockCallsBySource} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
+        <BarChart data={mockCallsByCampaign} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" horizontal={false} />
           <XAxis type="number" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
-          <YAxis dataKey="source" type="category" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} width={100} />
+          <YAxis dataKey="campaign" type="category" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} width={120} />
           <Tooltip
             cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
             contentStyle={{

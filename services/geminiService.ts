@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Call } from '../types';
+import { mockCampaigns } from "../data/mockData";
 
 if (!process.env.API_KEY) {
   // In a real app, you'd want to handle this more gracefully.
@@ -14,16 +15,19 @@ export const generateReportSummary = async (calls: Call[]): Promise<string> => {
         return "Error: Gemini API key is not configured. Please set the API_KEY environment variable.";
     }
 
+    const campaignMap = new Map(mockCampaigns.map(c => [c.id, c.name]));
+
     const aggregatedData = calls.reduce((acc, call) => {
+        const campaignName = campaignMap.get(call.campaignId) || 'Unknown Campaign';
         acc.totalCalls += 1;
         acc.totalRevenue += call.revenue;
-        acc.sources[call.source] = (acc.sources[call.source] || 0) + 1;
+        acc.campaigns[campaignName] = (acc.campaigns[campaignName] || 0) + 1;
         acc.statuses[call.status] = (acc.statuses[call.status] || 0) + 1;
         return acc;
     }, {
         totalCalls: 0,
         totalRevenue: 0,
-        sources: {} as Record<string, number>,
+        campaigns: {} as Record<string, number>,
         statuses: {} as Record<string, number>,
     });
 
@@ -34,13 +38,13 @@ export const generateReportSummary = async (calls: Call[]): Promise<string> => {
     Data Summary:
     - Total Calls: ${aggregatedData.totalCalls}
     - Total Revenue: $${aggregatedData.totalRevenue.toFixed(2)}
-    - Calls by Source: ${JSON.stringify(aggregatedData.sources)}
+    - Calls by Campaign: ${JSON.stringify(aggregatedData.campaigns)}
     - Calls by Status: ${JSON.stringify(aggregatedData.statuses)}
 
     Your report should:
     1.  Start with a title "### AI-Powered Performance Summary".
     2.  Provide a brief overview of the key metrics (total calls and revenue).
-    3.  Identify the top-performing call source.
+    3.  Identify the top-performing campaign.
     4.  Comment on the call status distribution (e.g., answered vs. missed calls).
     5.  Conclude with one key, actionable insight or recommendation for improvement.
     `;
