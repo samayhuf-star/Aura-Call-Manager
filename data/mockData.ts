@@ -1,4 +1,4 @@
-import { Call, CallStatus, CallVolumeData, CallsBySourceData, CallStatusData } from '../types';
+import { Call, CallStatus, CallVolumeData, CallsBySourceData, CallStatusData, Campaign, CampaignStatus, TrackedNumber, NumberStatus } from '../types';
 
 export const mockRecentCalls: Call[] = [
   { id: '1', callerId: '(555) 123-4567', source: 'Google Ads', duration: 320, status: CallStatus.Answered, cost: 2.50, revenue: 50.00, timestamp: '2023-10-27T10:00:00Z' },
@@ -35,4 +35,21 @@ export const mockCallStatus: CallStatusData[] = [
     { name: CallStatus.Missed, value: 250 },
     { name: CallStatus.Voicemail, value: 150 },
     { name: CallStatus.Failed, value: 78 },
+];
+
+export const mockCampaigns: Campaign[] = [
+  { id: 'c1', name: 'National TV Campaign Q4', status: CampaignStatus.Active, numbers: 5, calls: 1250, cpa: 12.50 },
+  { id: 'c2', name: 'Google Ads - West Coast', status: CampaignStatus.Active, numbers: 12, calls: 870, cpa: 8.75 },
+  { id: 'c3', name: 'Facebook Lead Gen - Fall Promo', status: CampaignStatus.Paused, numbers: 3, calls: 420, cpa: 15.20 },
+  { id: 'c4', name: 'Direct Mail - Seniors', status: CampaignStatus.Ended, numbers: 2, calls: 150, cpa: 25.00 },
+  { id: 'c5', name: 'Website Call Button', status: CampaignStatus.Active, numbers: 1, calls: 2200, cpa: 0.50 },
+];
+
+export const mockNumbers: TrackedNumber[] = [
+    { id: 'n1', phoneNumber: '(800) 555-0101', source: 'Google Ads', status: NumberStatus.Assigned, forwardTo: '(555) 123-4567' },
+    { id: 'n2', phoneNumber: '(800) 555-0102', source: 'Facebook', status: NumberStatus.Assigned, forwardTo: '(555) 123-4567' },
+    { id: 'n3', phoneNumber: '(800) 555-0103', source: 'Website', status: NumberStatus.Assigned, forwardTo: '(555) 987-6543' },
+    { id: 'n4', phoneNumber: '(800) 555-0104', source: null, status: NumberStatus.Available, forwardTo: '' },
+    { id: 'n5', phoneNumber: '(800) 555-0105', source: null, status: NumberStatus.Available, forwardTo: '' },
+    { id: 'n6', phoneNumber: '(800) 555-0106', source: 'Direct Mail', status: NumberStatus.Assigned, forwardTo: '(555) 111-2222' },
 ];

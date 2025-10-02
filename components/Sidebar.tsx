@@ -6,18 +6,24 @@ interface NavItemProps {
   label: string;
   active?: boolean;
   isCollapsed: boolean;
+  onClick: () => void;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, label, active, isCollapsed }) => {
+const NavItem: React.FC<NavItemProps> = ({ icon, label, active, isCollapsed, onClick }) => {
   return (
-    <a href="#" className={`flex items-center p-3 my-1 rounded-lg transition-colors duration-200 ${active ? 'bg-brand-primary text-white' : 'text-text-secondary hover:bg-background-light hover:text-white'}`}>
+    <button onClick={onClick} className={`w-full flex items-center p-3 my-1 rounded-lg transition-colors duration-200 text-left ${active ? 'bg-brand-primary text-white' : 'text-text-secondary hover:bg-background-light hover:text-white'}`}>
       {icon}
       {!isCollapsed && <span className="ml-4 font-medium">{label}</span>}
-    </a>
+    </button>
   );
 };
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  activePage: string;
+  onNavigate: (page: string) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -30,14 +36,14 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="flex-1">
-        <NavItem icon={<DashboardIcon />} label="Dashboard" active isCollapsed={isCollapsed} />
-        <NavItem icon={<CampaignsIcon />} label="Campaigns" isCollapsed={isCollapsed} />
-        <NavItem icon={<NumbersIcon />} label="Numbers" isCollapsed={isCollapsed} />
-        <NavItem icon={<ReportsIcon />} label="Reports" isCollapsed={isCollapsed} />
+        <NavItem icon={<DashboardIcon />} label="Dashboard" active={activePage === 'Dashboard'} isCollapsed={isCollapsed} onClick={() => onNavigate('Dashboard')} />
+        <NavItem icon={<CampaignsIcon />} label="Campaigns" active={activePage === 'Campaigns'} isCollapsed={isCollapsed} onClick={() => onNavigate('Campaigns')} />
+        <NavItem icon={<NumbersIcon />} label="Numbers" active={activePage === 'Numbers'} isCollapsed={isCollapsed} onClick={() => onNavigate('Numbers')} />
+        <NavItem icon={<ReportsIcon />} label="Reports" active={activePage === 'Reports'} isCollapsed={isCollapsed} onClick={() => onNavigate('Reports')} />
       </nav>
 
       <div>
-        <NavItem icon={<SettingsIcon />} label="Settings" isCollapsed={isCollapsed} />
+        <NavItem icon={<SettingsIcon />} label="Settings" active={activePage === 'Settings'} isCollapsed={isCollapsed} onClick={() => onNavigate('Settings')} />
         <button onClick={() => setIsCollapsed(!isCollapsed)} className="w-full mt-4 p-3 flex items-center text-text-secondary hover:bg-background-light hover:text-white rounded-lg">
            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {isCollapsed ? 

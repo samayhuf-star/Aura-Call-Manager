@@ -10,7 +10,8 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, change, change
         <div className="flex justify-between items-center">
             <h3 className="text-md font-medium text-text-secondary">{title}</h3>
             <div className="text-brand-secondary">
-                 {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}
+                 {/* FIX: Removed the type assertion as the prop type is now correctly defined in StatCardProps. */}
+                 {React.cloneElement(icon, { className: 'w-6 h-6' })}
             </div>
         </div>
         <div>
