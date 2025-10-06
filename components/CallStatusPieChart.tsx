@@ -1,17 +1,21 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { mockCallStatus } from '../data/mockData';
+import { CallStatusData } from '../types';
 
 const COLORS = ['#4ade80', '#facc15', '#60a5fa', '#f87171']; // green, yellow, blue, red
 
-export const CallStatusPieChart: React.FC = () => {
+interface CallStatusPieChartProps {
+  data: CallStatusData[];
+}
+
+export const CallStatusPieChart: React.FC<CallStatusPieChartProps> = ({ data }) => {
   return (
     <div className="bg-background-card p-6 rounded-xl shadow-lg h-96">
       <h3 className="text-lg font-semibold text-text-primary mb-4">Call Status Distribution</h3>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={mockCallStatus}
+            data={data}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -20,7 +24,7 @@ export const CallStatusPieChart: React.FC = () => {
             dataKey="value"
             nameKey="name"
           >
-            {mockCallStatus.map((entry, index) => (
+            {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>

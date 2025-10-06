@@ -1,13 +1,17 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { mockCallVolume } from '../data/mockData';
+import { CallVolumeData } from '../types';
 
-export const CallVolumeChart: React.FC = () => {
+interface CallVolumeChartProps {
+  data: CallVolumeData[];
+}
+
+export const CallVolumeChart: React.FC<CallVolumeChartProps> = ({ data }) => {
   return (
     <div className="bg-background-card p-6 rounded-xl shadow-lg h-96">
-      <h3 className="text-lg font-semibold text-text-primary mb-4">Call Volume (Last 30 Days)</h3>
+      <h3 className="text-lg font-semibold text-text-primary mb-4">Call Volume (Live)</h3>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={mockCallVolume} margin={{ top: 5, right: 20, left: -10, bottom: 20 }}>
+        <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
           <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
           <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />

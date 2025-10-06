@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Call, CallStatus } from '../types';
-import { mockRecentCalls, mockCampaigns, mockTargets } from '../data/mockData';
-import { ArrowDownTrayIcon, ChevronDownIcon, PlayIcon } from './icons/UIIcons';
+import { mockCampaigns, mockTargets } from '../data/mockData';
+import { ArrowDownTrayIcon, ChevronDownIcon, PlayIcon, PauseIcon } from './icons/UIIcons';
 import { exportToCSV } from '../utils/export';
 
 const statusColorMap: Record<CallStatus, string> = {
@@ -14,10 +14,75 @@ const statusColorMap: Record<CallStatus, string> = {
 const formatDuration = (seconds: number) => {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${m}m ${s}s`;
+  return `${m}m ${s.toString().padStart(2, '0')}s`;
 };
 
 const ExpandedRowContent: React.FC<{ call: Call }> = ({ call }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const progressBarRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (call.recordingUrl) {
+            audioRef.current = new Audio(call.recordingUrl);
+            const audio = audioRef.current;
+
+            const timeUpdateHandler = () => {
+                if (audio.duration) {
+                    setCurrentTime(audio.currentTime);
+                    setProgress((audio.currentTime / audio.duration) * 100);
+                }
+            };
+            const endedHandler = () => {
+                setIsPlaying(false);
+                setCurrentTime(audio.duration);
+                setProgress(100);
+            };
+
+            audio.addEventListener('timeupdate', timeUpdateHandler);
+            audio.addEventListener('ended', endedHandler);
+
+            // Cleanup
+            return () => {
+                audio.pause();
+                audio.removeEventListener('timeupdate', timeUpdateHandler);
+                audio.removeEventListener('ended', endedHandler);
+            };
+        }
+    }, [call.recordingUrl]);
+
+    const togglePlayPause = () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        if (isPlaying) {
+            audio.pause();
+        } else {
+            // If ended, reset to beginning before playing
+            if(audio.ended) {
+                audio.currentTime = 0;
+            }
+            audio.play().catch(e => console.error("Error playing audio:", e));
+        }
+        setIsPlaying(!isPlaying);
+    };
+
+    const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const progressBar = progressBarRef.current;
+        const audio = audioRef.current;
+        if (!progressBar || !audio || !audio.duration) return;
+
+        const rect = progressBar.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = progressBar.clientWidth;
+        const newTime = (clickX / width) * audio.duration;
+        
+        audio.currentTime = newTime;
+    };
+
+
     return (
         <div className="bg-background-dark p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -31,13 +96,23 @@ const ExpandedRowContent: React.FC<{ call: Call }> = ({ call }) => {
                 <h4 className="text-md font-semibold text-text-primary mb-3">Call Recording</h4>
                 {call.recordingUrl ? (
                     <div className="flex items-center gap-3 bg-background-light p-2 rounded-lg">
-                        <button className="p-2 rounded-full bg-brand-primary text-white hover:bg-brand-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-dark focus:ring-brand-primary">
-                            <PlayIcon className="w-5 h-5" />
+                        <button 
+                            onClick={togglePlayPause}
+                            className="p-2 rounded-full bg-brand-primary text-white hover:bg-brand-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-dark focus:ring-brand-primary">
+                            {isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
                         </button>
-                        <div className="w-full h-2 bg-border-color rounded-full overflow-hidden">
-                            <div className="w-1/3 h-full bg-brand-secondary"></div>
+                        <div 
+                            ref={progressBarRef}
+                            onClick={handleProgressClick}
+                            className="w-full h-2 bg-border-color rounded-full overflow-hidden cursor-pointer group">
+                            <div 
+                                className="h-full bg-brand-secondary group-hover:bg-brand-primary transition-colors" 
+                                style={{ width: `${progress}%` }}>
+                            </div>
                         </div>
-                        <span className="text-xs text-text-secondary font-mono">01:45 / {formatDuration(call.duration)}</span>
+                        <span className="text-xs text-text-secondary font-mono w-28 text-center">
+                            {formatDuration(Math.round(currentTime))} / {formatDuration(call.duration)}
+                        </span>
                     </div>
                 ) : (
                     <p className="text-sm text-text-secondary italic">No recording available for this call.</p>
@@ -55,7 +130,11 @@ const ExpandedRowContent: React.FC<{ call: Call }> = ({ call }) => {
     );
 };
 
-export const RecentCallsTable: React.FC = () => {
+interface RecentCallsTableProps {
+    calls: Call[];
+}
+
+export const RecentCallsTable: React.FC<RecentCallsTableProps> = ({ calls }) => {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const campaignMap = useMemo(() => new Map(mockCampaigns.map(c => [c.id, c.name])), []);
@@ -67,7 +146,7 @@ export const RecentCallsTable: React.FC = () => {
   };
 
   const handleExport = () => {
-    const dataToExport = mockRecentCalls.slice(0, 10).map(call => ({
+    const dataToExport = calls.slice(0, 10).map(call => ({
       'Caller ID': call.callerId,
       'Campaign': campaignMap.get(call.campaignId) || 'N/A',
       'Target': targetMap.get(call.targetId) || 'N/A',
@@ -106,7 +185,7 @@ export const RecentCallsTable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {mockRecentCalls.slice(0, 10).map((call) => (
+            {calls.slice(0, 10).map((call) => (
               <React.Fragment key={call.id}>
                 <tr 
                   className="border-b border-border-color hover:bg-background-light cursor-pointer"

@@ -21,14 +21,7 @@ const NumberRow: React.FC<{ number: TrackedNumber; onConfigureClick: (number: Tr
     </td>
     <td className="p-4 text-sm text-text-secondary">
         <button 
-          onClick={() => {
-            if (number.status === NumberStatus.Available) {
-              onConfigureClick(number);
-            } else {
-              // In a real app, this would open a more detailed configuration modal
-              alert('Configuration for already assigned numbers is not yet implemented.');
-            }
-          }}
+          onClick={() => onConfigureClick(number)}
           className="text-brand-secondary hover:text-brand-primary disabled:text-text-secondary disabled:cursor-not-allowed"
         >
           {number.status === NumberStatus.Available ? 'Assign Campaign' : 'Configure'}
@@ -43,17 +36,17 @@ const Numbers: React.FC = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<TrackedNumber | null>(null);
 
-  const campaignMap = useMemo(() => new Map(mockCampaigns.map(c => [c.id, c.name])), []);
+  const campaignMap = useMemo(() => new Map(mockCampaigns.map(c => [c.id, c.name])), [mockCampaigns]);
 
   const handlePurchaseNumbers = (purchasedNumbers: TrackedNumber[]) => {
-    // In a real app, you would update the state with the new numbers from an API response
     const newNumbers = purchasedNumbers.map(n => ({ ...n, status: NumberStatus.Available as NumberStatus }));
     setNumbers(prev => [...prev, ...newNumbers]);
+    initialMockNumbers.push(...newNumbers); // Update mock source
     alert(`${purchasedNumbers.length} number(s) purchased successfully!`);
     setIsPurchaseModalOpen(false);
   }
 
-  const handleOpenAssignModal = (number: TrackedNumber) => {
+  const handleOpenConfigureModal = (number: TrackedNumber) => {
     setSelectedNumber(number);
     setIsAssignModalOpen(true);
   };
@@ -64,13 +57,17 @@ const Numbers: React.FC = () => {
   }
 
   const handleAssignCampaign = (numberId: string, campaignId: string) => {
-    setNumbers(currentNumbers => 
-      currentNumbers.map(num => 
+    const updatedNumbers = numbers.map(num => 
         num.id === numberId 
           ? { ...num, campaignId: campaignId, status: NumberStatus.Assigned } 
           : num
-      )
-    );
+      );
+    setNumbers(updatedNumbers);
+
+    // Also update the global mock data
+    const index = initialMockNumbers.findIndex(n => n.id === numberId);
+    if(index !== -1) initialMockNumbers[index] = { ...initialMockNumbers[index], campaignId, status: NumberStatus.Assigned };
+
     handleCloseAssignModal();
   };
 
@@ -110,7 +107,7 @@ const Numbers: React.FC = () => {
                   <NumberRow 
                     key={number.id} 
                     number={number} 
-                    onConfigureClick={handleOpenAssignModal}
+                    onConfigureClick={handleOpenConfigureModal}
                     campaignName={number.campaignId ? campaignMap.get(number.campaignId) || 'N/A' : 'N/A'}
                   />
                 ))}

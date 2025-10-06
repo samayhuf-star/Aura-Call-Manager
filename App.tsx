@@ -6,6 +6,8 @@ import Numbers from './components/Numbers';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
 import Targets from './components/Targets';
+import CallRouting from './components/CallRouting';
+import CallLogs from './components/CallLogs';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('Dashboard');
@@ -20,8 +22,12 @@ const App: React.FC = () => {
         return <Numbers />;
       case 'Targets':
         return <Targets />;
+      case 'Call Routing':
+        return <CallRouting />;
       case 'Reports':
         return <Reports />;
+      case 'Call Logs':
+        return <CallLogs />;
       case 'Settings':
         return <Settings />;
       default:

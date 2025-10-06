@@ -1,3 +1,5 @@
+import React from 'react';
+
 export enum CallStatus {
   Answered = 'Answered',
   Missed = 'Missed',
@@ -5,26 +7,18 @@ export enum CallStatus {
   Failed = 'Failed',
 }
 
-export interface Target {
-  id: string;
-  name: string;
-  buyer: string;
-  destination: string;
-  status: 'Active' | 'Inactive';
-}
-
 export interface Call {
   id: string;
   callerId: string;
+  campaignId: string;
+  targetId: string;
   duration: number; // in seconds
   status: CallStatus;
   cost: number;
   revenue: number;
-  timestamp: string;
-  recordingUrl?: string | null;
-  notes?: string;
-  campaignId: string;
-  targetId: string;
+  timestamp: string; // ISO string
+  recordingUrl: string | null;
+  notes: string;
 }
 
 export interface CallVolumeData {
@@ -38,10 +32,16 @@ export interface CallsByCampaignData {
 }
 
 export interface CallStatusData {
-  name: CallStatus;
+  name: string;
   value: number;
-  // FIX: Add index signature for compatibility with the recharts library.
-  [key:string]: string | number;
+}
+
+export interface StatCardProps {
+  title: string;
+  value: string;
+  change: string;
+  changeType: 'increase' | 'decrease';
+  icon: React.ReactElement;
 }
 
 export enum CampaignStatus {
@@ -55,26 +55,61 @@ export interface Campaign {
   name: string;
   status: CampaignStatus;
   targetIds: string[];
+  routingType: 'Round Robin' | 'Priority';
+  offerName: string;
+  country: string;
+  recordingEnabled: boolean;
+  liveCalls: number;
+  callsLastHour: number;
+  callsLastDay: number;
+  callsLastMonth: number;
+  trackingId?: string;
+  reportDuplicateOn?: 'Connect' | 'Payout';
+  routePreviousCallsTo?: 'Normally' | 'To Original' | 'To Different';
+  handleAnonymousCallsAsDuplicate?: boolean;
+  payoutOncePerCaller?: boolean;
+  trimSilence?: boolean;
+  targetDialAttempts?: number;
+  stirShakenAttestation?: 'Account Disabled' | 'Enabled' | 'Disabled' | 'Account';
 }
 
+
 export enum NumberStatus {
-    Available = 'Available',
     Assigned = 'Assigned',
+    Available = 'Available',
 }
 
 export interface TrackedNumber {
     id: string;
     phoneNumber: string;
-    campaignId: string | null;
     status: NumberStatus;
+    campaignId: string | null;
 }
 
+export interface Target {
+    id: string;
+    name: string;
+    buyer: string;
+    destination: string; // phone number
+    status: 'Active' | 'Inactive';
+}
 
-export interface StatCardProps {
-  title: string;
-  value: string;
-  change: string;
-  changeType: 'increase' | 'decrease';
-  // FIX: Updated the icon prop type to be more specific about accepting a className, resolving a TypeScript error when using React.cloneElement.
-  icon: React.ReactElement<{ className?: string }>;
+export interface RoutingRule {
+    id: string;
+    priority: number;
+    criteria: Array<{
+        type: 'DayOfWeek' | 'TimeOfDay' | 'CallerID';
+        value: any;
+    }>;
+    action: 'RouteTo' | 'Block';
+    actionValue: string; // Target Group ID or null
+}
+
+export interface TargetGroup {
+    id: string;
+    name: string;
+    targets: Array<{
+        targetId: string;
+        weight: number;
+    }>;
 }

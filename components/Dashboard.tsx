@@ -1,32 +1,159 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { StatCard } from './StatCard';
 import { CallVolumeChart } from './CallVolumeChart';
 import { CallsByCampaignChart } from './CallsBySourceChart';
 import { RecentCallsTable } from './RecentCallsTable';
 import { CallStatusPieChart } from './CallStatusPieChart';
 import { PhoneIcon, CurrencyDollarIcon, ClockIcon, ChartBarIcon, SparklesIcon } from './icons/UIIcons';
-import { mockRecentCalls } from '../data/mockData';
+import { 
+    mockRecentCalls as initialRecentCalls, 
+    mockCallVolume as initialCallVolume,
+    mockCallsByCampaign as initialCallsByCampaign,
+    mockCallStatus as initialCallStatus,
+    mockCampaigns,
+    mockTargets
+} from '../data/mockData';
 import { generateReportSummary } from '../services/geminiService';
 import { marked } from 'marked';
+import { Call, CallStatus, CallStatusData, CallVolumeData, CallsByCampaignData } from '../types';
+
+const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}m ${s}s`;
+};
+
+const createRandomCall = (): Call => {
+    const campaign = mockCampaigns[Math.floor(Math.random() * mockCampaigns.length)];
+    const target = mockTargets.find(t => campaign.targetIds.includes(t.id)) || mockTargets[0];
+    const statusValues = Object.values(CallStatus);
+    const status = statusValues[Math.floor(Math.random() * statusValues.length)];
+    const duration = status === CallStatus.Answered ? Math.floor(Math.random() * 500) + 30 : Math.floor(Math.random() * 30);
+    const revenue = status === CallStatus.Answered && Math.random() > 0.4 ? Math.floor(Math.random() * 80) + 10 : 0;
+
+    return {
+      id: `call-${Date.now()}-${Math.random()}`,
+      callerId: `(555) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`,
+      campaignId: campaign.id,
+      targetId: target.id,
+      duration: duration,
+      status: status,
+      cost: Math.random() * 2.5,
+      revenue: revenue,
+      timestamp: new Date().toISOString(),
+      recordingUrl: status === CallStatus.Answered || status === CallStatus.Voicemail ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' : null,
+      notes: ''
+    };
+};
+
 
 const Dashboard: React.FC = () => {
     const [summary, setSummary] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    
+    // State for all dynamic data
+    const [recentCalls, setRecentCalls] = useState<Call[]>(initialRecentCalls);
+    const [callVolume, setCallVolume] = useState<CallVolumeData[]>(initialCallVolume);
+    const [callsByCampaign, setCallsByCampaign] = useState<CallsByCampaignData[]>(initialCallsByCampaign);
+    const [callStatus, setCallStatus] = useState<CallStatusData[]>(initialCallStatus);
+    const [stats, setStats] = useState({
+        calls: "1,428",
+        revenue: "$21,840",
+        avgDuration: "4m 28s",
+        conversionRate: "28.4%",
+    });
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // 1. Generate a new call
+            const newCall = createRandomCall();
+
+            // 2. Update recent calls list
+            setRecentCalls(prev => [newCall, ...prev.slice(0, 49)]);
+
+            // 3. Update call volume chart
+            setCallVolume(prev => {
+                const newVolume = [...prev.slice(1)];
+                newVolume.push({
+                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    calls: Math.floor(Math.random() * 50) + 20,
+                });
+                return newVolume;
+            });
+
+            // 4. Update calls by campaign
+            setCallsByCampaign(prev => {
+                const campaignName = mockCampaigns.find(c => c.id === newCall.campaignId)?.name || "Unknown";
+                const campaignIndex = prev.findIndex(c => c.campaign === campaignName);
+                const newCampaignData = [...prev];
+                if (campaignIndex > -1) {
+                    newCampaignData[campaignIndex] = {...newCampaignData[campaignIndex], calls: newCampaignData[campaignIndex].calls + 1};
+                }
+                return newCampaignData;
+            });
+            
+            // 5. Update call status distribution
+            setCallStatus(prev => {
+                const statusIndex = prev.findIndex(s => s.name === newCall.status);
+                const newStatusData = [...prev];
+                if (statusIndex > -1) {
+                    newStatusData[statusIndex] = {...newStatusData[statusIndex], value: newStatusData[statusIndex].value + 1};
+                }
+                return newStatusData;
+            });
+            
+            // 6. Recalculate and update stats
+            setRecentCalls(currentCalls => {
+                const allCalls = [newCall, ...currentCalls];
+                const totalCalls = allCalls.length;
+                const totalRevenue = allCalls.reduce((sum, call) => sum + call.revenue, 0);
+                const totalDuration = allCalls.reduce((sum, call) => sum + call.duration, 0);
+                const convertedCalls = allCalls.filter(c => c.revenue > 0).length;
+        
+                const avgDurationSec = totalCalls > 0 ? totalDuration / totalCalls : 0;
+                const conversionRate = totalCalls > 0 ? (convertedCalls / totalCalls) * 100 : 0;
+
+                setStats({
+                    calls: totalCalls.toLocaleString(),
+                    revenue: `$${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`,
+                    avgDuration: formatDuration(avgDurationSec),
+                    conversionRate: `${conversionRate.toFixed(1)}%`
+                });
+
+                return allCalls;
+            });
+
+
+        }, 2000); // Update every 2 seconds
+
+        return () => clearInterval(interval);
+    }, []);
 
     const handleGenerateSummary = useCallback(async () => {
         setIsLoading(true);
         setSummary('');
         try {
-            const result = await generateReportSummary(mockRecentCalls);
+            const result = await generateReportSummary(recentCalls);
             const htmlResult = marked.parse(result);
             setSummary(htmlResult as string);
         } catch (error) {
-            console.error(error);
-            setSummary('<p class="text-red-400">Failed to generate summary.</p>');
+            console.error("Error generating AI summary:", error);
+            const errorMessage = `
+                <div class="flex flex-col items-center justify-center text-center p-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-text-primary">Unable to Generate Summary</h3>
+                    <p class="text-text-secondary mt-1 text-sm">
+                        An error occurred while communicating with the AI service. Please check your network connection and API key configuration, then try again.
+                    </p>
+                </div>
+            `;
+            setSummary(errorMessage);
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [recentCalls]);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-background-light min-h-full">
@@ -66,26 +193,26 @@ const Dashboard: React.FC = () => {
 
             {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Total Calls" value="1,428" change="+12.5%" changeType="increase" icon={<PhoneIcon />} />
-                <StatCard title="Total Revenue" value="$21,840" change="+8.2%" changeType="increase" icon={<CurrencyDollarIcon />} />
-                <StatCard title="Avg. Call Duration" value="4m 28s" change="-1.5%" changeType="decrease" icon={<ClockIcon />} />
-                <StatCard title="Conversion Rate" value="28.4%" change="+3.1%" changeType="increase" icon={<ChartBarIcon />} />
+                <StatCard title="Total Calls" value={stats.calls} change="" changeType="increase" icon={<PhoneIcon />} />
+                <StatCard title="Total Revenue" value={stats.revenue} change="" changeType="increase" icon={<CurrencyDollarIcon />} />
+                <StatCard title="Avg. Call Duration" value={stats.avgDuration} change="" changeType="decrease" icon={<ClockIcon />} />
+                <StatCard title="Conversion Rate" value={stats.conversionRate} change="" changeType="increase" icon={<ChartBarIcon />} />
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                    <CallVolumeChart />
+                    <CallVolumeChart data={callVolume} />
                 </div>
-                <CallStatusPieChart />
+                <CallStatusPieChart data={callStatus} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                  <div className="lg:col-span-3">
-                    <RecentCallsTable />
+                    <RecentCallsTable calls={recentCalls} />
                  </div>
                  <div className="lg:col-span-2">
-                    <CallsByCampaignChart />
+                    <CallsByCampaignChart data={callsByCampaign} />
                  </div>
             </div>
         </div>
