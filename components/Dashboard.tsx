@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { StatCard } from './StatCard';
 import { CallVolumeChart } from './CallVolumeChart';
 import { CallsByCampaignChart } from './CallsBySourceChart';
@@ -8,8 +8,6 @@ import { PhoneIcon, CurrencyDollarIcon, ClockIcon, ChartBarIcon, SparklesIcon } 
 import { 
     mockRecentCalls as initialRecentCalls, 
     mockCallVolume as initialCallVolume,
-    mockCallsByCampaign as initialCallsByCampaign,
-    mockCallStatus as initialCallStatus,
     mockCampaigns,
     mockTargets
 } from '../data/mockData';
@@ -23,29 +21,56 @@ const formatDuration = (seconds: number) => {
     return `${m}m ${s}s`;
 };
 
-const createRandomCall = (): Call => {
+const createRandomCall = (existingCalls: Call[]): Call => {
     const campaign = mockCampaigns[Math.floor(Math.random() * mockCampaigns.length)];
     const target = mockTargets.find(t => campaign.targetIds.includes(t.id)) || mockTargets[0];
     const statusValues = Object.values(CallStatus);
     const status = statusValues[Math.floor(Math.random() * statusValues.length)];
     const duration = status === CallStatus.Answered ? Math.floor(Math.random() * 500) + 30 : Math.floor(Math.random() * 30);
-    const revenue = status === CallStatus.Answered && Math.random() > 0.4 ? Math.floor(Math.random() * 80) + 10 : 0;
+
+    // Simulate duplicates by sometimes reusing a caller ID from recent calls
+    let callerId = `(555) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    if (Math.random() < 0.2 && existingCalls.length > 0) { // 20% chance to be a potential duplicate
+        callerId = existingCalls[Math.floor(Math.random() * Math.min(existingCalls.length, 10))].callerId;
+    }
+
+    const newCallTimestamp = new Date();
+    let isDuplicate = false;
+    const duplicateWindow = campaign.duplicate_window_minutes;
+
+    if (duplicateWindow && duplicateWindow > 0) {
+        const windowMilliseconds = duplicateWindow * 60 * 1000;
+        const duplicateFound = existingCalls.some(
+            (call) =>
+                call.callerId === callerId &&
+                call.campaignId === campaign.id &&
+                (newCallTimestamp.getTime() - new Date(call.timestamp).getTime()) < windowMilliseconds
+        );
+        if (duplicateFound) {
+            isDuplicate = true;
+        }
+    }
+
+    // A call is "converted" (generates revenue) if it is answered and NOT a duplicate.
+    let revenue = 0;
+    if (status === CallStatus.Answered && !isDuplicate && Math.random() > 0.4) {
+        revenue = Math.floor(Math.random() * 80) + 10;
+    }
 
     return {
       id: `call-${Date.now()}-${Math.random()}`,
-      callerId: `(555) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`,
+      callerId,
       campaignId: campaign.id,
       targetId: target.id,
-      duration: duration,
-      status: status,
+      duration,
+      status,
       cost: Math.random() * 2.5,
-      revenue: revenue,
-      timestamp: new Date().toISOString(),
+      revenue,
+      timestamp: newCallTimestamp.toISOString(),
       recordingUrl: status === CallStatus.Answered || status === CallStatus.Voicemail ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' : null,
-      notes: ''
+      notes: isDuplicate ? 'Flagged as potential duplicate call within the configured window.' : ''
     };
 };
-
 
 const Dashboard: React.FC = () => {
     const [summary, setSummary] = useState<string>('');
@@ -54,24 +79,69 @@ const Dashboard: React.FC = () => {
     // State for all dynamic data
     const [recentCalls, setRecentCalls] = useState<Call[]>(initialRecentCalls);
     const [callVolume, setCallVolume] = useState<CallVolumeData[]>(initialCallVolume);
-    const [callsByCampaign, setCallsByCampaign] = useState<CallsByCampaignData[]>(initialCallsByCampaign);
-    const [callStatus, setCallStatus] = useState<CallStatusData[]>(initialCallStatus);
-    const [stats, setStats] = useState({
-        calls: "1,428",
-        revenue: "$21,840",
-        avgDuration: "4m 28s",
-        conversionRate: "28.4%",
-    });
+
+    const stats = useMemo(() => {
+        const totalCalls = recentCalls.length;
+        if (totalCalls === 0) {
+            return {
+                calls: "0",
+                revenue: "$0.00",
+                avgDuration: "0m 0s",
+                conversionRate: "0.0%",
+            };
+        }
+        const totalRevenue = recentCalls.reduce((sum, call) => sum + call.revenue, 0);
+        const totalDuration = recentCalls.reduce((sum, call) => sum + call.duration, 0);
+        const convertedCalls = recentCalls.filter(c => c.revenue > 0).length;
+
+        const avgDurationSec = totalDuration / totalCalls;
+        const conversionRate = (convertedCalls / totalCalls) * 100;
+
+        return {
+            calls: totalCalls.toLocaleString(),
+            revenue: `$${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`,
+            avgDuration: formatDuration(avgDurationSec),
+            conversionRate: `${conversionRate.toFixed(1)}%`
+        };
+    }, [recentCalls]);
+    
+    const callsByCampaign = useMemo((): CallsByCampaignData[] => {
+        // FIX: Explicitly typing the accumulator `acc` ensures that TypeScript correctly infers
+        // the return type of `reduce` as `Record<string, number>`, resolving downstream type errors.
+        const campaignCounts = recentCalls.reduce((acc: Record<string, number>, call) => {
+            const campaignName = mockCampaigns.find(c => c.id === call.campaignId)?.name || 'Unknown';
+            acc[campaignName] = (acc[campaignName] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.entries(campaignCounts)
+            .map(([campaign, calls]) => ({ campaign, calls }))
+            .sort((a,b) => b.calls - a.calls);
+    }, [recentCalls]);
+    
+    const callStatus = useMemo((): CallStatusData[] => {
+        const statusCounts = recentCalls.reduce((acc, call) => {
+            acc[call.status] = (acc[call.status] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return [
+            { name: CallStatus.Answered, value: statusCounts[CallStatus.Answered] || 0 },
+            { name: CallStatus.Missed, value: statusCounts[CallStatus.Missed] || 0 },
+            { name: CallStatus.Voicemail, value: statusCounts[CallStatus.Voicemail] || 0 },
+            { name: CallStatus.Failed, value: statusCounts[CallStatus.Failed] || 0 },
+        ];
+    }, [recentCalls]);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            // 1. Generate a new call
-            const newCall = createRandomCall();
+            // Atomically update recentCalls
+            setRecentCalls(prevCalls => {
+                const newCall = createRandomCall(prevCalls);
+                return [newCall, ...prevCalls.slice(0, 49)];
+            });
 
-            // 2. Update recent calls list
-            setRecentCalls(prev => [newCall, ...prev.slice(0, 49)]);
-
-            // 3. Update call volume chart
+            // Update call volume chart (retains random nature for visual effect)
             setCallVolume(prev => {
                 const newVolume = [...prev.slice(1)];
                 newVolume.push({
@@ -80,49 +150,6 @@ const Dashboard: React.FC = () => {
                 });
                 return newVolume;
             });
-
-            // 4. Update calls by campaign
-            setCallsByCampaign(prev => {
-                const campaignName = mockCampaigns.find(c => c.id === newCall.campaignId)?.name || "Unknown";
-                const campaignIndex = prev.findIndex(c => c.campaign === campaignName);
-                const newCampaignData = [...prev];
-                if (campaignIndex > -1) {
-                    newCampaignData[campaignIndex] = {...newCampaignData[campaignIndex], calls: newCampaignData[campaignIndex].calls + 1};
-                }
-                return newCampaignData;
-            });
-            
-            // 5. Update call status distribution
-            setCallStatus(prev => {
-                const statusIndex = prev.findIndex(s => s.name === newCall.status);
-                const newStatusData = [...prev];
-                if (statusIndex > -1) {
-                    newStatusData[statusIndex] = {...newStatusData[statusIndex], value: newStatusData[statusIndex].value + 1};
-                }
-                return newStatusData;
-            });
-            
-            // 6. Recalculate and update stats
-            setRecentCalls(currentCalls => {
-                const allCalls = [newCall, ...currentCalls];
-                const totalCalls = allCalls.length;
-                const totalRevenue = allCalls.reduce((sum, call) => sum + call.revenue, 0);
-                const totalDuration = allCalls.reduce((sum, call) => sum + call.duration, 0);
-                const convertedCalls = allCalls.filter(c => c.revenue > 0).length;
-        
-                const avgDurationSec = totalCalls > 0 ? totalDuration / totalCalls : 0;
-                const conversionRate = totalCalls > 0 ? (convertedCalls / totalCalls) * 100 : 0;
-
-                setStats({
-                    calls: totalCalls.toLocaleString(),
-                    revenue: `$${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`,
-                    avgDuration: formatDuration(avgDurationSec),
-                    conversionRate: `${conversionRate.toFixed(1)}%`
-                });
-
-                return allCalls;
-            });
-
 
         }, 2000); // Update every 2 seconds
 

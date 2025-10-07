@@ -46,7 +46,9 @@ const Reports: React.FC = () => {
 
   const callVolumeData = useMemo((): CallVolumeData[] => {
     // Group calls by date string (e.g., "2023-10-27") to count calls per day.
-    const dailyCalls = filteredCalls.reduce<Record<string, number>>((acc, call) => {
+    // FIX: Explicitly typing the accumulator `acc` ensures TypeScript correctly infers
+    // the return type of `reduce` as `Record<string, number>`, resolving downstream type errors.
+    const dailyCalls = filteredCalls.reduce<Record<string, number>>((acc: Record<string, number>, call) => {
       const callDateKey = call.timestamp.substring(0, 10); // YYYY-MM-DD
       acc[callDateKey] = (acc[callDateKey] || 0) + 1;
       return acc;

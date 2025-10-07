@@ -9,8 +9,8 @@ export const mockTargets: Target[] = [
 ];
 
 export const mockCampaigns: Campaign[] = [
-  { id: 'c1', name: 'Google Ads - National', status: CampaignStatus.Active, targetIds: ['t1', 't2', 't3'], routingType: 'Round Robin', offerName: 'General Inquiry', country: 'US', recordingEnabled: true, liveCalls: 2, callsLastHour: 5, callsLastDay: 120, callsLastMonth: 3400 },
-  { id: 'c2', name: 'Facebook Ads - West Coast', status: CampaignStatus.Active, targetIds: ['t2'], routingType: 'Priority', offerName: 'West Coast Promo', country: 'US', recordingEnabled: true, liveCalls: 1, callsLastHour: 3, callsLastDay: 80, callsLastMonth: 2100 },
+  { id: 'c1', name: 'Google Ads - National', status: CampaignStatus.Active, targetIds: ['t1', 't2', 't3'], routingType: 'Round Robin', offerName: 'General Inquiry', country: 'US', recordingEnabled: true, liveCalls: 2, callsLastHour: 5, callsLastDay: 120, callsLastMonth: 3400, duplicate_window_minutes: 30 },
+  { id: 'c2', name: 'Facebook Ads - West Coast', status: CampaignStatus.Active, targetIds: ['t2'], routingType: 'Priority', offerName: 'West Coast Promo', country: 'US', recordingEnabled: true, liveCalls: 1, callsLastHour: 3, callsLastDay: 80, callsLastMonth: 2100, duplicate_window_minutes: 60 },
   { id: 'c3', name: 'Bing Ads - East Coast', status: CampaignStatus.Paused, targetIds: ['t3'], routingType: 'Priority', offerName: 'East Coast Promo', country: 'US', recordingEnabled: false, liveCalls: 0, callsLastHour: 0, callsLastDay: 15, callsLastMonth: 500 },
   { id: 'c4', name: 'Q1 Print Campaign', status: CampaignStatus.Ended, targetIds: ['t1'], routingType: 'Priority', offerName: 'Print Ad Promo', country: 'US', recordingEnabled: true, liveCalls: 0, callsLastHour: 0, callsLastDay: 0, callsLastMonth: 850 },
   { id: 'c5', name: 'Website "Contact Us"', status: CampaignStatus.Active, targetIds: ['t1', 't4'], routingType: 'Priority', offerName: 'Website Inquiry', country: 'US', recordingEnabled: true, liveCalls: 0, callsLastHour: 1, callsLastDay: 30, callsLastMonth: 900 },

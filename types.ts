@@ -71,6 +71,7 @@ export interface Campaign {
   trimSilence?: boolean;
   targetDialAttempts?: number;
   stirShakenAttestation?: 'Account Disabled' | 'Enabled' | 'Disabled' | 'Account';
+  duplicate_window_minutes?: number;
 }
 
 
